@@ -22,7 +22,8 @@ import subprocess
 # (필요 VRAM GiB 하한, Qwen3 우선 모델, Qwen2.5 대체 모델). 위에서부터 검사. 모두 Apache-2.0.
 TIERS = [
     (140, "qwen3:235b-a22b", "qwen2.5:72b-instruct"),  # 서버급 다중 GPU
-    (23,  "qwen3:32b",       "qwen2.5:32b-instruct"),  # 24GB+ (3090/4090/5090)
+    (30,  "qwen3:32b",       "qwen2.5:32b-instruct"),  # 32GB+ (예: RTX 5090): dense 32B 여유
+    (22,  "qwen3:30b-a3b",   "qwen2.5:32b-instruct"),  # 24GB (3090/4090): MoE(32B급 품질+빠름+여유)
     (15,  "qwen3:14b",       "qwen2.5:14b-instruct"),  # 16GB+
     (7,   "qwen3:8b",        "qwen2.5:7b-instruct"),   # 8GB+ (예: RTX 3080 10GB)
     (4,   "qwen3:4b",        "qwen2.5:3b-instruct"),
