@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paper Viewer — 영어 논문 이중 뷰어</title>
+  <link rel="stylesheet" href="/web/style.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div class="tb-left">
+      <strong class="brand">📄 Paper Viewer</strong>
+      <select id="paperSelect" title="papers/ 폴더의 논문"></select>
+      <button id="openBtn">열기</button>
+      <span id="modelTag" class="model-tag"></span>
+    </div>
+    <div class="tb-right">
+      <button id="exportBtn" title="이 논문을 단일 HTML 파일로 저장 — GPU·서버 없이 노트북·아이패드·안드로이드 등 어느 기기에서나 열립니다" disabled>⬇ 내보내기</button>
+      <label class="chk"><input type="checkbox" id="toggleEn" checked /> 영문 보기</label>
+      <div class="fontctl">
+        <button id="fontMinus" title="글자 작게">A−</button>
+        <button id="fontPlus" title="글자 크게">A+</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="progress" class="progress hidden">
+    <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+    <div id="progressMsg" class="progress-msg">준비 중…</div>
+  </div>
+
+  <main id="doc" class="doc">
+    <div class="empty" id="emptyState">
+      <h1>영어 논문 이중 뷰어</h1>
+      <p>위에서 논문을 선택하고 <b>열기</b>를 누르세요.<br />
+         왼쪽은 영어 원문, 오른쪽은 자연스러운 한국어 번역이 <b>같은 위치</b>에 나란히 표시됩니다.</p>
+      <p class="hint">논문 PDF 는 <code>papers/</code> 폴더에 넣어주세요.</p>
+    </div>
+  </main>
+
+  <div class="colhead" id="colhead">
+    <div class="colhead-inner">
+      <span class="ch ch-en">English</span>
+      <span class="ch ch-ko">한국어</span>
+    </div>
+  </div>
+
+  <script src="/web/viewer.js"></script>
+</body>
+</html>

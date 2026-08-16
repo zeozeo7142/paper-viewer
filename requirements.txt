@@ -1,0 +1,9 @@
+# PDF 파싱: 텍스트 블록/그림/표의 위치(bbox)를 추출 (AGPL-3.0 — 내부/개인용 사용은 무료·무제한)
+PyMuPDF>=1.24
+
+# 로컬 웹 서버
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# Ollama HTTP API 호출용
+requests>=2.31
