@@ -160,10 +160,31 @@ class Translator:
         return True, "ok"
 
     def pull(self) -> None:
-        """모델을 Ollama 로 다운로드(최초 1회). 대형 모델은 오래 걸릴 수 있음."""
-        r = requests.post(f"{self.url}/api/pull",
-                          json={"name": self.model, "stream": False}, timeout=7200)
-        r.raise_for_status()
+        """모델을 Ollama 로 다운로드(최초 1회). 대형 모델은 오래 걸릴 수 있음.
+
+        스트리밍으로 받아 중간 오류(네트워크/레지스트리 등)를 실제 메시지로 드러낸다.
+        (비스트리밍 pull 은 대용량에서 opaque 한 500 을 반환하는 경우가 있음)
+        """
+        with requests.post(f"{self.url}/api/pull",
+                           json={"name": self.model, "stream": True},
+                           stream=True, timeout=7200) as r:
+            r.raise_for_status()
+            last = ""
+            for line in r.iter_lines():
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line.decode("utf-8"))
+                except Exception:
+                    continue
+                if obj.get("error"):
+                    raise RuntimeError(obj["error"])  # 실제 원인 메시지 노출
+                last = obj.get("status", last)
+            if last != "success":
+                # 스트림이 success 로 끝나지 않으면 준비 여부로 최종 확인
+                ok, _ = self.ensure_ready()
+                if not ok:
+                    raise RuntimeError(f"모델 다운로드가 완료되지 않았습니다(status={last!r}).")
 
     def health_ok(self, timeout: int = 60) -> bool:
         """모델이 이 머신에서 실제로 (제한시간 안에) 생성하는지 확인.
