@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from pipeline import Translator, parse_pdf
-from pipeline.export import export_paper
+from pipeline.export import export_filename, export_paper
 from pipeline.model_select import select_best_model
 
 ROOT = Path(__file__).parent
@@ -165,9 +165,20 @@ def process(path: str):
             t = Translator(model=candidate, cache_path=TM_PATH, glossary_path=GLOSSARY_PATH)
             ok, msg = t.ensure_ready()
             if not ok and "없습니다" in msg:  # 미설치 → 자동 다운로드(최초 1회)
-                yield sse("status", {"phase": "pull", "message": f"모델 다운로드 중(최초 1회, 수 GB): {candidate}"})
+                yield sse("status", {"phase": "pull", "message": f"모델 다운로드 중(최초 1회): {candidate}"})
                 try:
-                    t.pull()
+                    last_pct = -1
+                    for p in t.pull_stream():
+                        total, done = p.get("total"), p.get("completed")
+                        if total and done is not None:
+                            pct = int(done * 100 / total)
+                            if pct != last_pct:  # 1% 단위로만 전송(과도한 이벤트 방지)
+                                last_pct = pct
+                                yield sse("status", {
+                                    "phase": "pull", "pct": pct,
+                                    "message": f"모델 다운로드 중: {candidate} — {pct}% "
+                                               f"({done/1e9:.1f}/{total/1e9:.1f}GB)",
+                                })
                     ok, msg = t.ensure_ready()
                 except Exception as e:
                     ok, msg = False, f"다운로드 실패: {e}"
@@ -216,7 +227,8 @@ def process(path: str):
             elif kind == "finish":
                 break
 
-        doc = {"id": pid, "title": _guess_title(blocks), "model": model, "blocks": blocks}
+        doc = {"id": pid, "title": _guess_title(blocks), "model": model,
+               "source": pdf.name, "blocks": blocks}
         out_dir.mkdir(parents=True, exist_ok=True)
         doc_json.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
         yield sse("done", {"id": pid, "cached": False})
@@ -232,12 +244,11 @@ def export_doc(pid: str):
     if not (dd / "doc.json").exists():
         raise HTTPException(404, "먼저 논문을 번역한 뒤 내보낼 수 있습니다.")
     doc = json.loads((dd / "doc.json").read_text(encoding="utf-8"))
-    import re as _re
-    safe = _re.sub(r"[^\w가-힣 .-]", "_", (doc.get("title") or pid))[:60].strip() or pid
-    out = EXPORT_DIR / f"{safe}.html"
+    name = export_filename(doc)
+    out = EXPORT_DIR / f"{name}.html"
     export_paper(dd, out, WEB_DIR / "style.css")
     return FileResponse(str(out), media_type="text/html; charset=utf-8",
-                        filename=f"{safe}.html")
+                        filename=f"{name}.html")
 
 
 def _guess_title(blocks: list[dict]) -> str:

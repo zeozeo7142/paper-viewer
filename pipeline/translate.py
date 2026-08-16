@@ -160,10 +160,15 @@ class Translator:
         return True, "ok"
 
     def pull(self) -> None:
-        """모델을 Ollama 로 다운로드(최초 1회). 대형 모델은 오래 걸릴 수 있음.
+        """모델을 Ollama 로 다운로드(최초 1회). 진행 상황은 무시."""
+        for _ in self.pull_stream():
+            pass
 
-        스트리밍으로 받아 중간 오류(네트워크/레지스트리 등)를 실제 메시지로 드러낸다.
-        (비스트리밍 pull 은 대용량에서 opaque 한 500 을 반환하는 경우가 있음)
+    def pull_stream(self):
+        """모델을 스트리밍으로 다운로드하며 진행 상황 dict 를 yield.
+
+        각 dict 예: {"status": "pulling ...", "total": 18e9, "completed": 1.2e9}.
+        중간 오류(네트워크/디스크/레지스트리 등)는 실제 메시지로 예외 발생.
         """
         with requests.post(f"{self.url}/api/pull",
                            json={"name": self.model, "stream": True},
@@ -180,8 +185,8 @@ class Translator:
                 if obj.get("error"):
                     raise RuntimeError(obj["error"])  # 실제 원인 메시지 노출
                 last = obj.get("status", last)
+                yield obj
             if last != "success":
-                # 스트림이 success 로 끝나지 않으면 준비 여부로 최종 확인
                 ok, _ = self.ensure_ready()
                 if not ok:
                     raise RuntimeError(f"모델 다운로드가 완료되지 않았습니다(status={last!r}).")

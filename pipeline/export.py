@@ -127,6 +127,16 @@ def _html_escape(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def export_filename(doc: dict) -> str:
+    """내보내기 파일명(확장자 제외): '원본PDF명(모델명)'. 예) paad_RAL2022(qwen2.5_7b-instruct)"""
+    src = doc.get("source") or ""
+    stem = Path(src).stem if src else (doc.get("title") or doc.get("id") or "paper")
+    model = (doc.get("model") or "").replace(":", "_").replace("/", "_")
+    base = f"{stem}({model})" if model else stem
+    base = re.sub(r"[^\w가-힣()._-]", "_", base).strip("_ ")
+    return base[:120] or "paper"
+
+
 def build_standalone_html(doc_dir: Path, css_path: Path, title: str | None = None) -> str:
     doc_dir = Path(doc_dir)
     doc = json.loads((doc_dir / "doc.json").read_text(encoding="utf-8"))
@@ -191,7 +201,6 @@ if __name__ == "__main__":
     pid = sys.argv[1]
     dd = root / "cache" / pid
     doc = json.loads((dd / "doc.json").read_text(encoding="utf-8"))
-    safe = re.sub(r"[^\w가-힣 .-]", "_", (doc.get("title") or pid))[:60].strip() or pid
-    out = root / "exports" / f"{safe}.html"
+    out = root / "exports" / f"{export_filename(doc)}.html"
     export_paper(dd, out, root / "web" / "style.css")
     print("wrote", out, f"({out.stat().st_size // 1024} KB)")

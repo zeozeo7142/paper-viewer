@@ -66,6 +66,7 @@ function openPaper(name) {
     progressMsg.textContent = d.message;
     if (d.phase === "parse") barFill.style.width = "6%";
     if (d.phase === "parsed") barFill.style.width = "12%";
+    if (d.phase === "pull" && d.pct != null) barFill.style.width = d.pct + "%";  // 모델 다운로드 진행률
   });
   es.addEventListener("progress", (e) => {
     const d = JSON.parse(e.data);
