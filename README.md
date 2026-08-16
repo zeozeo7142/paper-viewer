@@ -55,17 +55,19 @@
 
    - **모델은 자동으로 선택·다운로드됩니다.** VRAM에 맞춰 아래 티어에서 고릅니다(모두 Apache-2.0):
 
-     | VRAM | 우선(Qwen3) | 대체(Qwen2.5) |
-     |------|-------------|----------------|
-     | 32GB+ (예: RTX 5090) | qwen3:32b (dense) | qwen2.5:32b |
-     | 24GB (3090/4090) | qwen3:30b-a3b (MoE) | qwen2.5:32b |
-     | 16GB+ | qwen3:14b | qwen2.5:14b |
-     | 8GB+ (예: RTX 3080) | qwen3:8b | qwen2.5:7b |
-     | 4GB+ | qwen3:4b | qwen2.5:3b |
+     | VRAM | 우선 | 대체 |
+     |------|------|------|
+     | 48GB+ | qwen2.5:72b | qwen3:30b-instruct |
+     | 24GB / 32GB (3090/4090/5090) | **qwen3:30b-instruct** (MoE, 비-thinking) | qwen2.5:32b |
+     | 16GB | qwen2.5:14b | — |
+     | 8~10GB (예: RTX 3080) | qwen2.5:7b | — |
+     | 4~6GB | qwen3:4b-instruct | qwen2.5:3b |
 
-     > 24GB는 dense 32B(Q4 ~22–23GB)도 아슬아슬하게 올라가지만, 모니터 연결·긴 컨텍스트에서
-     > CPU 오프로드로 느려질 수 있어 **MoE(30b-a3b, ~18GB)** 를 기본값으로 둡니다(32B급 품질+빠름).
-     > dense 32B를 꼭 쓰고 싶으면 `PAPER_VIEWER_MODEL=qwen3:32b` 로 강제 지정하세요.
+     > **왜 Qwen3 Instruct 변형만?** Qwen3 dense/기본 모델(32b·14b·8b·30b-a3b)은 '생각(thinking)'
+     > 모드가 기본이고, 일부 Ollama 버전은 이를 끄지 못해(think:false/no_think 무시) 번역이
+     > 매우 느려집니다. 그래서 **생각이 없는 Instruct 변형**(`qwen3:30b-instruct`, `qwen3:4b-instruct`)만
+     > 채택하고, 그 외 구간은 원래 생각이 없는 Qwen2.5 를 씁니다. (생각 모델이 걸려도 서버가
+     > 자동 감지해 대체 모델로 폴백합니다.) `qwen3:30b-instruct`는 24GB에서 ~180 tok/s로 매우 빠릅니다.
 
    - 우선 모델이 그 머신에서 실제로 구동되는지 **자동 점검** → 안 되면 동급 **Qwen2.5로 자동 폴백**.
      판정 결과는 `cache/model_health.json`에 기억되어 이후 재점검하지 않습니다.

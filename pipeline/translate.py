@@ -191,25 +191,31 @@ class Translator:
                 if not ok:
                     raise RuntimeError(f"모델 다운로드가 완료되지 않았습니다(status={last!r}).")
 
-    def health_ok(self, timeout: int = 60) -> bool:
-        """모델이 이 머신에서 실제로 (제한시간 안에) 생성하는지 확인.
-        Qwen3 가 구형 Ollama 등에서 멈추는 경우를 감지해 폴백 판단에 사용한다.
-        (모델 최초 로드 시간을 감안해 timeout 은 넉넉히.)"""
+    def health_ok(self, timeout: int = 90) -> bool:
+        """이 머신에서 모델이 '빠르고 깨끗한 한국어 번역'을 내는지 확인.
+
+        - 아예 멈추는 경우(구형 Ollama+Qwen3 등) → 타임아웃 → False
+        - 생각(thinking) 모드가 안 꺼지는 경우(Ollama 가 think:false 무시) → 응답에
+          <think>/</think> 가 섞이거나 짧은 응답에 한국어가 없음 → False
+        이렇게 폴백 판정을 내려, 번역에 부적합한 모델을 자동으로 걸러낸다."""
         payload = {
             "model": self.model,
-            "messages": [{"role": "user", "content": "Translate to Korean: ready"}],
+            "messages": [{"role": "user", "content": "Translate to Korean: We propose a network."}],
             "stream": False,
             "keep_alive": "30m",
-            "options": {"temperature": 0, "num_predict": 8, "num_ctx": 1024},
+            "options": {"temperature": 0, "num_predict": 64, "num_ctx": 1024},
         }
         if "qwen3" in self.model:
             payload["think"] = False
         try:
             r = requests.post(f"{self.url}/api/chat", json=payload, timeout=timeout)
             r.raise_for_status()
-            return bool(r.json().get("message", {}).get("content", "").strip())
+            content = r.json().get("message", {}).get("content", "")
         except Exception:
             return False
+        if "<think>" in content or "</think>" in content:
+            return False  # 생각 모드를 끌 수 없는 모델 → 번역용으로 부적합
+        return bool(_HANGUL.search(content))  # 짧은 응답 안에 한국어 번역이 나와야 정상
 
     def translate_blocks(
         self,

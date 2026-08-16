@@ -19,15 +19,20 @@ import re
 import shutil
 import subprocess
 
-# (필요 VRAM GiB 하한, Qwen3 우선 모델, Qwen2.5 대체 모델). 위에서부터 검사. 모두 Apache-2.0.
+# (필요 VRAM GiB 하한, 우선 모델, 대체 모델). 위에서부터 검사. 모두 Apache-2.0(기업/상업 무제약).
+#
+# 중요: Qwen3 dense/기본 MoE(32b·14b·8b·30b-a3b 등)는 '생각(thinking)' 모드가 기본이며,
+#       일부 Ollama 버전(예: 0.32.13)은 think:false/no_think 를 무시해 번역이 매우 느리고 지저분함.
+#       그래서 '생각이 없는' Instruct 변형만 사용한다. Ollama 공식의 non-thinking Qwen3 는
+#       `qwen3:30b-instruct`(MoE, 24GB급)와 `qwen3:4b-instruct`(소형) 둘뿐. 그 외 구간은
+#       애초에 생각이 없는 Qwen2.5 를 쓴다. (생각모델이 걸려도 서버 health check 가 폴백 처리)
 TIERS = [
-    (140, "qwen3:235b-a22b", "qwen2.5:72b-instruct"),  # 서버급 다중 GPU
-    (30,  "qwen3:32b",       "qwen2.5:32b-instruct"),  # 32GB+ (예: RTX 5090): dense 32B 여유
-    (22,  "qwen3:30b-a3b",   "qwen2.5:32b-instruct"),  # 24GB (3090/4090): MoE(32B급 품질+빠름+여유)
-    (15,  "qwen3:14b",       "qwen2.5:14b-instruct"),  # 16GB+
-    (7,   "qwen3:8b",        "qwen2.5:7b-instruct"),   # 8GB+ (예: RTX 3080 10GB)
-    (4,   "qwen3:4b",        "qwen2.5:3b-instruct"),
-    (0,   "qwen3:1.7b",      "qwen2.5:3b-instruct"),
+    (46, "qwen2.5:72b-instruct", "qwen3:30b-instruct"),   # 48GB+
+    (22, "qwen3:30b-instruct",   "qwen2.5:32b-instruct"),  # 24GB/32GB (3090/4090/5090): non-thinking MoE, 초고속
+    (15, "qwen2.5:14b-instruct", None),                    # 16GB
+    (7,  "qwen2.5:7b-instruct",  None),                    # 8~10GB (예: RTX 3080)
+    (4,  "qwen3:4b-instruct",    "qwen2.5:3b-instruct"),   # 4~6GB: non-thinking 소형 Qwen3
+    (0,  "qwen2.5:3b-instruct",  None),
 ]
 
 
