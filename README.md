@@ -40,8 +40,19 @@
    ```
    pip install -r requirements.txt
    ```
-2. **Ollama** (로컬 번역 엔진)
-   - 설치: <https://ollama.com/download> (또는 `winget install Ollama.Ollama`)
+2. **Ollama** (로컬 번역 엔진) — OS별 설치:
+   - **Linux / macOS**
+     ```
+     curl -fsSL https://ollama.com/install.sh | sh
+     ```
+   - **Windows** (PowerShell)
+     ```
+     irm https://ollama.com/install.ps1 | iex
+     ```
+   - 또는 <https://ollama.com/download> 에서 설치 파일을 받아 설치.
+
+   설치 후 백그라운드 서비스가 자동 실행됩니다. 실행되지 않으면 별도 터미널에서 `ollama serve` 로 기동하세요.
+
    - **모델은 자동으로 선택·다운로드됩니다.** VRAM에 맞춰 아래 티어에서 고릅니다(모두 Apache-2.0):
 
      | VRAM | 우선(Qwen3) | 대체(Qwen2.5) |
